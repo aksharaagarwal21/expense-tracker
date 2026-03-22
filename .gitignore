@@ -1,0 +1,11 @@
+@"
+__pycache__/
+*.pyc
+*.pyo
+.env
+venv/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+"@ | Out-File -FilePath .gitignore -Encoding utf8

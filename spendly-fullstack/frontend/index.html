@@ -1,0 +1,1481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spendly — Smart Expense Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#0a0a0f;--surface:#111118;--surface2:#1a1a24;--surface3:#22222f;
+    --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.12);
+    --text:#f0f0f8;--text2:#8888aa;
+    --accent:#7c6aff;--accent2:#a594ff;
+    --green:#22d3a0;--red:#ff5c7a;--yellow:#ffb84d;--blue:#4dc4ff;--pink:#ff6eb4;
+    --radius:16px;--radius-sm:10px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+  body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");pointer-events:none;z-index:0;opacity:0.4;}
+
+  /* LAYOUT */
+  .app{display:flex;min-height:100vh;position:relative;}
+
+  /* SIDEBAR */
+  .sidebar{width:260px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:100;padding:28px 0;}
+  .logo{font-family:'Syne',sans-serif;font-weight:800;font-size:22px;color:var(--text);padding:0 24px 32px;display:flex;align-items:center;gap:10px;}
+  .logo-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--accent),var(--pink));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;}
+  .nav-label{font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--text2);padding:0 24px 10px;margin-top:8px;}
+  .nav-item{display:flex;align-items:center;gap:12px;padding:11px 24px;cursor:pointer;transition:all .2s;font-size:14px;font-weight:500;color:var(--text2);border-left:3px solid transparent;margin:1px 0;user-select:none;}
+  .nav-item:hover{background:var(--surface2);color:var(--text);}
+  .nav-item.active{background:rgba(124,106,255,.12);color:var(--accent2);border-left-color:var(--accent);}
+  .nav-item .icon{font-size:16px;width:20px;text-align:center;}
+  .sidebar-footer{margin-top:auto;padding:20px 24px;border-top:1px solid var(--border);}
+  .user-card{display:flex;align-items:center;gap:12px;}
+  .avatar{width:38px;height:38px;background:linear-gradient(135deg,var(--accent),var(--blue));border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:white;flex-shrink:0;}
+  .user-info{flex:1;min-width:0;}
+  .user-name{font-size:13px;font-weight:600;color:var(--text);}
+  .user-plan{font-size:11px;color:var(--text2);}
+
+  /* MAIN */
+  .main{margin-left:260px;flex:1;min-height:100vh;display:flex;flex-direction:column;}
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:20px 32px;border-bottom:1px solid var(--border);background:rgba(10,10,15,.8);backdrop-filter:blur(20px);position:sticky;top:0;z-index:50;}
+  .page-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;}
+  .topbar-right{display:flex;align-items:center;gap:12px;}
+
+  /* BUTTONS */
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:9px 18px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .2s;border:none;}
+  .btn-primary{background:linear-gradient(135deg,var(--accent),#6050dd);color:white;box-shadow:0 4px 20px rgba(124,106,255,.3);}
+  .btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 25px rgba(124,106,255,.4);}
+  .btn-ghost{background:var(--surface2);color:var(--text2);border:1px solid var(--border);}
+  .btn-ghost:hover{background:var(--surface3);color:var(--text);}
+  .btn-sm{padding:6px 14px;font-size:12px;}
+  .btn:disabled{opacity:.5;cursor:not-allowed;transform:none!important;}
+
+  /* SEARCH */
+  .search-wrap{position:relative;flex:1;max-width:280px;}
+  .search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text2);font-size:14px;}
+  .search-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:9px 14px 9px 36px;font-size:13px;font-family:'DM Sans',sans-serif;color:var(--text);outline:none;transition:border-color .2s;}
+  .search-input:focus{border-color:var(--accent);}
+  .search-input::placeholder{color:var(--text2);}
+  .notification-btn{width:38px;height:38px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;font-size:16px;transition:all .2s;}
+  .notification-btn:hover{background:var(--surface3);}
+  .badge{width:8px;height:8px;background:var(--red);border-radius:50%;position:absolute;top:7px;right:8px;border:2px solid var(--bg);}
+
+  /* CONTENT */
+  .content{padding:28px 32px;flex:1;}
+  .page{display:none;}
+  .page.active{display:block;}
+
+  /* STATS */
+  .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;}
+  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px;position:relative;overflow:hidden;transition:border-color .2s;}
+  .stat-card:hover{border-color:var(--border2);}
+  .stat-card::before{content:'';position:absolute;top:0;right:0;width:80px;height:80px;border-radius:50%;opacity:.06;transform:translate(20px,-20px);}
+  .stat-card.blue::before{background:var(--blue);}
+  .stat-card.green::before{background:var(--green);}
+  .stat-card.red::before{background:var(--red);}
+  .stat-card.yellow::before{background:var(--yellow);}
+  .stat-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:16px;}
+  .stat-icon.blue{background:rgba(77,196,255,.12);color:var(--blue);}
+  .stat-icon.green{background:rgba(34,211,160,.12);color:var(--green);}
+  .stat-icon.red{background:rgba(255,92,122,.12);color:var(--red);}
+  .stat-icon.yellow{background:rgba(255,184,77,.12);color:var(--yellow);}
+  .stat-label{font-size:12px;color:var(--text2);margin-bottom:6px;font-weight:500;}
+  .stat-value{font-family:'Syne',sans-serif;font-size:26px;font-weight:700;margin-bottom:8px;}
+  .stat-change{font-size:12px;display:flex;align-items:center;gap:4px;}
+  .stat-change.up{color:var(--green);}
+  .stat-change.down{color:var(--red);}
+
+  /* TWO COL */
+  .two-col{display:grid;grid-template-columns:1fr 360px;gap:20px;margin-bottom:24px;}
+  .three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;}
+
+  /* CARD */
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;}
+  .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
+  .card-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;}
+  .card-subtitle{font-size:12px;color:var(--text2);margin-top:2px;}
+
+  /* CHART */
+  .chart-bars{display:flex;align-items:flex-end;gap:8px;height:160px;padding-bottom:8px;}
+  .chart-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;}
+  .bar-wrap{width:100%;display:flex;flex-direction:column;justify-content:flex-end;height:140px;gap:2px;}
+  .bar{width:100%;border-radius:6px 6px 0 0;transition:all .5s cubic-bezier(.34,1.56,.64,1);cursor:pointer;}
+  .bar:hover{filter:brightness(1.2);}
+  .bar.expense{background:linear-gradient(180deg,var(--accent),rgba(124,106,255,.4));}
+  .bar.income{background:linear-gradient(180deg,var(--green),rgba(34,211,160,.4));}
+  .bar-label{font-size:10px;color:var(--text2);font-weight:500;}
+  .chart-legend{display:flex;gap:16px;margin-top:16px;}
+  .legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);}
+  .legend-dot{width:8px;height:8px;border-radius:50%;}
+
+  /* DONUT */
+  .donut-wrap{display:flex;flex-direction:column;align-items:center;gap:20px;}
+  .donut-total{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;}
+  .donut-label{font-size:11px;color:var(--text2);}
+  .donut-legend{width:100%;}
+  .donut-legend-item{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;}
+  .donut-legend-item:last-child{border-bottom:none;}
+  .donut-legend-left{display:flex;align-items:center;gap:8px;}
+  .donut-legend-dot{width:10px;height:10px;border-radius:3px;}
+  .donut-legend-name{color:var(--text2);}
+
+  /* TRANSACTIONS */
+  .tx-list{display:flex;flex-direction:column;gap:2px;}
+  .tx-item{display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:var(--radius-sm);transition:background .15s;cursor:pointer;}
+  .tx-item:hover{background:var(--surface2);}
+  .tx-icon{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+  .tx-info{flex:1;min-width:0;}
+  .tx-name{font-size:14px;font-weight:500;}
+  .tx-meta{font-size:12px;color:var(--text2);margin-top:2px;}
+  .tx-amount{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;}
+  .tx-amount.credit{color:var(--green);}
+  .tx-status{font-size:10px;padding:3px 8px;border-radius:20px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;}
+  .tx-status.completed{background:rgba(34,211,160,.12);color:var(--green);}
+  .tx-status.pending{background:rgba(255,184,77,.12);color:var(--yellow);}
+  .tx-status.failed{background:rgba(255,92,122,.12);color:var(--red);}
+
+  /* BUDGET */
+  .budget-list{display:flex;flex-direction:column;gap:16px;}
+  .budget-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:13px;}
+  .budget-name{font-weight:500;display:flex;align-items:center;gap:8px;}
+  .budget-bar-track{height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;}
+  .budget-bar-fill{height:100%;border-radius:3px;transition:width .8s cubic-bezier(.34,1.56,.64,1);}
+
+  /* PAYMENT CARDS */
+  .cards-row{display:flex;gap:16px;margin-bottom:24px;overflow-x:auto;padding-bottom:4px;}
+  .payment-card{min-width:280px;height:160px;border-radius:18px;padding:22px;position:relative;overflow:hidden;cursor:pointer;transition:transform .2s;}
+  .payment-card:hover{transform:translateY(-3px);}
+  .payment-card.visa{background:linear-gradient(135deg,#1a1a35,#2d1f5a);border:1px solid rgba(124,106,255,.3);}
+  .payment-card.mastercard{background:linear-gradient(135deg,#1f1a14,#3d2a10);border:1px solid rgba(255,184,77,.3);}
+  .payment-card.amex{background:linear-gradient(135deg,#0f2030,#0a3040);border:1px solid rgba(77,196,255,.3);}
+  .payment-card.rupay{background:linear-gradient(135deg,#0f1f10,#1a3020);border:1px solid rgba(34,211,160,.3);}
+  .card-chip{width:30px;height:22px;background:linear-gradient(135deg,#c8a850,#f0d080);border-radius:5px;margin-bottom:16px;}
+  .card-number{font-size:14px;letter-spacing:.15em;color:rgba(255,255,255,.7);margin-bottom:16px;}
+  .card-footer{display:flex;justify-content:space-between;align-items:flex-end;}
+  .card-name{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;}
+  .card-expiry{font-size:11px;color:rgba(255,255,255,.5);}
+
+  /* TABS */
+  .tabs{display:flex;gap:4px;background:var(--surface2);padding:4px;border-radius:var(--radius-sm);margin-bottom:20px;}
+  .tab{flex:1;padding:8px 16px;border-radius:7px;font-size:13px;font-weight:500;cursor:pointer;text-align:center;transition:all .2s;color:var(--text2);}
+  .tab.active{background:var(--surface3);color:var(--text);}
+
+  /* QUICK ACTIONS */
+  .quick-actions{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px;}
+  .quick-btn{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;text-align:center;cursor:pointer;transition:all .2s;}
+  .quick-btn:hover{border-color:var(--border2);background:var(--surface2);transform:translateY(-2px);}
+  .quick-btn .q-icon{font-size:24px;margin-bottom:8px;}
+  .quick-btn .q-label{font-size:12px;font-weight:600;color:var(--text2);}
+
+  /* MODAL */
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(8px);z-index:1000;align-items:center;justify-content:center;}
+  .modal-overlay.open{display:flex;}
+  .modal{background:var(--surface);border:1px solid var(--border2);border-radius:20px;padding:32px;width:480px;max-width:calc(100vw - 40px);animation:modalIn .3s cubic-bezier(.34,1.56,.64,1);}
+  @keyframes modalIn{from{transform:scale(.9) translateY(20px);opacity:0}to{transform:scale(1) translateY(0);opacity:1}}
+  .modal-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;}
+  .modal-close{width:30px;height:30px;border-radius:8px;background:var(--surface2);border:none;color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:all .15s;}
+  .modal-close:hover{background:var(--surface3);color:var(--text);}
+  .form-group{margin-bottom:16px;}
+  .form-label{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px;display:block;text-transform:uppercase;letter-spacing:.05em;}
+  .form-input,.form-select{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px 14px;font-size:14px;font-family:'DM Sans',sans-serif;color:var(--text);transition:border-color .2s;outline:none;}
+  .form-input:focus,.form-select:focus{border-color:var(--accent);}
+  .form-select{appearance:none;cursor:pointer;}
+  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .type-toggle{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;}
+  .type-btn{padding:10px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-size:13px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .2s;text-align:center;}
+  .type-btn.active.expense{background:rgba(255,92,122,.15);border-color:var(--red);color:var(--red);}
+  .type-btn.active.income{background:rgba(34,211,160,.15);border-color:var(--green);color:var(--green);}
+  .modal-footer{display:flex;gap:10px;margin-top:24px;}
+  .modal-footer .btn{flex:1;justify-content:center;}
+  .payment-methods{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;}
+  .payment-method-btn{padding:14px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer;transition:all .2s;text-align:center;font-family:'DM Sans',sans-serif;}
+  .payment-method-btn .pm-icon{font-size:22px;margin-bottom:6px;}
+  .payment-method-btn .pm-name{font-size:12px;font-weight:600;}
+  .payment-method-btn.active{border-color:var(--accent);background:rgba(124,106,255,.1);color:var(--text);}
+
+  /* SETTINGS */
+  .settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+  .settings-section-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border);}
+  .settings-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);}
+  .settings-row:last-child{border-bottom:none;}
+  .settings-label{font-size:14px;font-weight:500;}
+  .settings-desc{font-size:12px;color:var(--text2);margin-top:2px;}
+  .toggle{width:40px;height:22px;background:var(--surface3);border-radius:11px;position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;}
+  .toggle.on{background:var(--accent);}
+  .toggle::after{content:'';position:absolute;width:16px;height:16px;background:white;border-radius:50%;top:3px;left:3px;transition:transform .2s;box-shadow:0 1px 4px rgba(0,0,0,.3);}
+  .toggle.on::after{transform:translateX(18px);}
+
+  /* INSIGHT CARDS */
+  .insight-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;}
+  .insight-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;}
+  .insight-icon{font-size:24px;margin-bottom:12px;}
+  .insight-title{font-size:12px;color:var(--text2);margin-bottom:6px;font-weight:500;}
+  .insight-value{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;}
+
+  /* AUTH */
+  #authScreen{position:fixed;inset:0;background:var(--bg);z-index:9000;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+  #authScreen.hidden{display:none;}
+  .auth-glow{position:absolute;border-radius:50%;filter:blur(100px);pointer-events:none;}
+  .auth-glow-1{width:500px;height:500px;background:var(--accent);top:-150px;right:-100px;opacity:.07;}
+  .auth-glow-2{width:350px;height:350px;background:var(--pink);bottom:-80px;left:-80px;opacity:.06;}
+  .auth-split{display:flex;width:100%;max-width:960px;min-height:580px;border-radius:24px;overflow:hidden;border:1px solid var(--border2);box-shadow:0 40px 100px rgba(0,0,0,.6);position:relative;z-index:1;margin:20px;}
+  .auth-left{flex:1;background:linear-gradient(145deg,#0f0f1e,#1a1030);padding:52px 48px;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden;}
+  .auth-left::before{content:'';position:absolute;width:300px;height:300px;background:var(--accent);border-radius:50%;filter:blur(80px);opacity:.12;bottom:-80px;right:-80px;}
+  .auth-brand{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;display:flex;align-items:center;gap:12px;}
+  .auth-brand-icon{width:44px;height:44px;background:linear-gradient(135deg,var(--accent),var(--pink));border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;}
+  .auth-tagline{font-family:'Syne',sans-serif;font-size:32px;font-weight:800;line-height:1.25;margin-bottom:16px;}
+  .auth-tagline span{background:linear-gradient(135deg,var(--accent2),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+  .auth-desc{font-size:14px;color:var(--text2);line-height:1.7;margin-bottom:32px;}
+  .auth-features{display:flex;flex-direction:column;gap:12px;}
+  .auth-feature{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text2);}
+  .auth-feature-dot{width:20px;height:20px;background:rgba(124,106,255,.15);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;}
+  .auth-right{width:420px;background:var(--surface);padding:52px 44px;display:flex;flex-direction:column;justify-content:center;}
+  .auth-tabs{display:flex;gap:0;background:var(--surface2);border-radius:var(--radius-sm);padding:4px;margin-bottom:32px;}
+  .auth-tab{flex:1;padding:9px;text-align:center;font-size:13px;font-weight:600;border-radius:7px;cursor:pointer;color:var(--text2);transition:all .2s;user-select:none;}
+  .auth-tab.active{background:var(--surface3);color:var(--text);}
+  .auth-form{display:none;}
+  .auth-form.active{display:block;}
+  .auth-title{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:6px;}
+  .auth-subtitle{font-size:13px;color:var(--text2);margin-bottom:28px;}
+  .auth-input-wrap{position:relative;margin-bottom:14px;}
+  .auth-input-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:15px;color:var(--text2);}
+  .auth-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px 12px 42px;font-size:14px;font-family:'DM Sans',sans-serif;color:var(--text);outline:none;transition:border-color .2s,box-shadow .2s;}
+  .auth-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(124,106,255,.12);}
+  .auth-input::placeholder{color:var(--text2);}
+  .auth-input-toggle{position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--text2);font-size:14px;user-select:none;}
+  .auth-forgot{text-align:right;font-size:12px;color:var(--accent2);cursor:pointer;margin-bottom:20px;display:block;}
+  .auth-submit{width:100%;padding:13px;background:linear-gradient(135deg,var(--accent),#6050dd);border:none;border-radius:var(--radius-sm);color:white;font-size:14px;font-weight:700;font-family:'Syne',sans-serif;cursor:pointer;transition:all .2s;box-shadow:0 4px 20px rgba(124,106,255,.3);}
+  .auth-submit:hover{transform:translateY(-1px);box-shadow:0 6px 28px rgba(124,106,255,.45);}
+  .auth-submit:disabled{opacity:.6;cursor:not-allowed;transform:none;}
+  .auth-divider{display:flex;align-items:center;gap:12px;margin:18px 0;color:var(--text2);font-size:12px;}
+  .auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:var(--border);}
+  .auth-social{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .auth-social-btn{display:flex;align-items:center;justify-content:center;gap:8px;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-weight:500;font-family:'DM Sans',sans-serif;color:var(--text2);cursor:pointer;transition:all .2s;}
+  .auth-social-btn:hover{background:var(--surface3);color:var(--text);border-color:var(--border2);}
+  .auth-error{background:rgba(255,92,122,.1);border:1px solid rgba(255,92,122,.3);border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;color:var(--red);margin-bottom:14px;display:none;}
+  .auth-error.show{display:block;}
+  .auth-success{background:rgba(34,211,160,.1);border:1px solid rgba(34,211,160,.3);border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;color:var(--green);margin-bottom:14px;display:none;}
+  .auth-success.show{display:block;}
+  .auth-loading{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:white;border-radius:50%;animation:spin .6s linear infinite;margin-right:8px;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .auth-terms{font-size:11px;color:var(--text2);text-align:center;margin-top:16px;line-height:1.6;}
+  .auth-terms a{color:var(--accent2);cursor:pointer;}
+
+  /* TOAST */
+  .toast-container{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px;}
+  .toast{background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:14px 18px;display:flex;align-items:center;gap:12px;font-size:13px;animation:toastIn .3s cubic-bezier(.34,1.56,.64,1);min-width:260px;box-shadow:0 8px 30px rgba(0,0,0,.4);}
+  .toast.success{border-left:3px solid var(--green);}
+  .toast.error{border-left:3px solid var(--red);}
+  .toast.info{border-left:3px solid var(--accent);}
+  @keyframes toastIn{from{transform:translateX(100px);opacity:0}to{transform:translateX(0);opacity:1}}
+
+  /* LOADING OVERLAY */
+  .page-loading{display:flex;align-items:center;justify-content:center;padding:60px;flex-direction:column;gap:16px;color:var(--text2);font-size:14px;}
+  .spinner{width:36px;height:36px;border:3px solid var(--surface2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;}
+
+  /* GLOWS */
+  .glow{position:fixed;border-radius:50%;filter:blur(80px);pointer-events:none;z-index:0;opacity:.06;}
+  .glow-1{width:400px;height:400px;background:var(--accent);top:-100px;right:100px;}
+  .glow-2{width:300px;height:300px;background:var(--pink);bottom:100px;left:300px;}
+
+  ::-webkit-scrollbar{width:6px;height:6px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  ::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:3px;}
+  .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+  .mb-6{margin-bottom:24px;}
+  .flex-between{display:flex;justify-content:space-between;align-items:center;}
+</style>
+</head>
+<body>
+
+<!-- ======= AUTH SCREEN ======= -->
+<div id="authScreen">
+  <div class="auth-glow auth-glow-1"></div>
+  <div class="auth-glow auth-glow-2"></div>
+  <div class="auth-split">
+    <div class="auth-left">
+      <div class="auth-brand">
+        <div class="auth-brand-icon">💸</div>
+        Spendly
+      </div>
+      <div>
+        <div class="auth-tagline">Track every rupee.<br><span>Grow your wealth.</span></div>
+        <div class="auth-desc">Smart expense tracking with AI-powered insights, payment integration, and real-time analytics — all in one beautiful dashboard.</div>
+        <div class="auth-features">
+          <div class="auth-feature"><div class="auth-feature-dot">🔒</div>Bank-grade 256-bit encryption</div>
+          <div class="auth-feature"><div class="auth-feature-dot">📊</div>Real-time spending analytics</div>
+          <div class="auth-feature"><div class="auth-feature-dot">💳</div>Razorpay &amp; Stripe payment integration</div>
+          <div class="auth-feature"><div class="auth-feature-dot">📱</div>UPI, NEFT, IMPS transfers</div>
+        </div>
+      </div>
+      <div style="font-size:12px;color:var(--text2)">Trusted by 50,000+ users · ★ 4.9 rating</div>
+    </div>
+    <div class="auth-right">
+      <div class="auth-tabs">
+        <div class="auth-tab active" onclick="switchAuthTab('login')">Sign In</div>
+        <div class="auth-tab" onclick="switchAuthTab('signup')">Create Account</div>
+      </div>
+      <!-- LOGIN -->
+      <div class="auth-form active" id="loginForm">
+        <div class="auth-title">Welcome back 👋</div>
+        <div class="auth-subtitle">Sign in to your Spendly account</div>
+        <div class="auth-error" id="loginError"></div>
+        <div class="auth-input-wrap">
+          <span class="auth-input-icon">✉️</span>
+          <input class="auth-input" id="loginEmail" type="email" placeholder="Email address" />
+        </div>
+        <div class="auth-input-wrap">
+          <span class="auth-input-icon">🔑</span>
+          <input class="auth-input" id="loginPassword" type="password" placeholder="Password" />
+          <span class="auth-input-toggle" onclick="togglePwd('loginPassword',this)">👁️</span>
+        </div>
+        <a class="auth-forgot">Forgot password?</a>
+        <button class="auth-submit" id="loginBtn" onclick="doLogin()">Sign In</button>
+        <div class="auth-divider">or demo account</div>
+        <div class="auth-social">
+          <div class="auth-social-btn" onclick="fillDemo()">🚀 Use Demo Account</div>
+          <div class="auth-social-btn" onclick="switchAuthTab('signup')">✏️ Register New</div>
+        </div>
+        <div class="auth-terms">By signing in you agree to our <a>Terms</a> and <a>Privacy Policy</a></div>
+      </div>
+      <!-- SIGNUP -->
+      <div class="auth-form" id="signupForm">
+        <div class="auth-title">Create account 🚀</div>
+        <div class="auth-subtitle">Start your financial journey today</div>
+        <div class="auth-error" id="signupError"></div>
+        <div class="auth-success" id="signupSuccess">Account created! Signing you in...</div>
+        <div class="auth-input-wrap">
+          <span class="auth-input-icon">👤</span>
+          <input class="auth-input" id="signupName" type="text" placeholder="Full name" />
+        </div>
+        <div class="auth-input-wrap">
+          <span class="auth-input-icon">✉️</span>
+          <input class="auth-input" id="signupEmail" type="email" placeholder="Email address" />
+        </div>
+        <div class="auth-input-wrap">
+          <span class="auth-input-icon">🔑</span>
+          <input class="auth-input" id="signupPassword" type="password" placeholder="Password (min 6 chars)" />
+          <span class="auth-input-toggle" onclick="togglePwd('signupPassword',this)">👁️</span>
+        </div>
+        <div class="auth-input-wrap">
+          <span class="auth-input-icon">🔑</span>
+          <input class="auth-input" id="signupConfirm" type="password" placeholder="Confirm password" />
+        </div>
+        <button class="auth-submit" id="signupBtn" onclick="doSignup()" style="margin-top:6px">Create Account</button>
+        <div class="auth-terms" style="margin-top:14px">By registering you agree to our <a>Terms</a> and <a>Privacy Policy</a></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======= MAIN APP ======= -->
+<div class="glow glow-1"></div>
+<div class="glow glow-2"></div>
+
+<div class="app" id="mainApp" style="display:none">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="logo"><div class="logo-icon">💸</div>Spendly</div>
+    <div class="nav-label">Overview</div>
+    <div class="nav-item active" onclick="navigate('dashboard',this)"><span class="icon">⬡</span>Dashboard</div>
+    <div class="nav-item" onclick="navigate('transactions',this)"><span class="icon">↕</span>Transactions</div>
+    <div class="nav-item" onclick="navigate('analytics',this)"><span class="icon">◫</span>Analytics</div>
+    <div class="nav-item" onclick="navigate('budgets',this)"><span class="icon">◎</span>Budgets</div>
+    <div class="nav-label" style="margin-top:8px">Payments</div>
+    <div class="nav-item" onclick="navigate('payments',this)"><span class="icon">▣</span>Payment Cards</div>
+    <div class="nav-item" onclick="navigate('transfer',this)"><span class="icon">⇄</span>Transfer</div>
+    <div class="nav-item" onclick="navigate('bills',this)"><span class="icon">◷</span>Bills &amp; Recurring</div>
+    <div class="nav-label" style="margin-top:8px">System</div>
+    <div class="nav-item" onclick="navigate('settings',this)"><span class="icon">⚙</span>Settings</div>
+    <div class="sidebar-footer">
+      <div class="user-card">
+        <div class="avatar" id="sidebarAvatar">AK</div>
+        <div class="user-info">
+          <div class="user-name" id="sidebarName">Loading...</div>
+          <div class="user-plan">Pro Plan ✦</div>
+        </div>
+        <div onclick="openModal('logout')" title="Logout" style="width:32px;height:32px;border-radius:8px;background:rgba(255,92,122,.1);border:1px solid rgba(255,92,122,.2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:15px;transition:all .2s;flex-shrink:0" onmouseover="this.style.background='rgba(255,92,122,.25)'" onmouseout="this.style.background='rgba(255,92,122,.1)'">⏻</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <header class="topbar">
+      <div class="page-title" id="pageTitle">Dashboard</div>
+      <div class="topbar-right">
+        <div class="search-wrap">
+          <span class="search-icon">🔍</span>
+          <input class="search-input" id="globalSearch" placeholder="Search transactions..." oninput="onSearch(this.value)" />
+        </div>
+        <div class="notification-btn">🔔<div class="badge"></div></div>
+        <button class="btn btn-primary" onclick="openModal('addTransaction')">+ Add Expense</button>
+      </div>
+    </header>
+
+    <div class="content">
+
+      <!-- DASHBOARD -->
+      <div class="page active" id="page-dashboard">
+        <div class="stats-grid" id="statsGrid">
+          <div class="page-loading" style="grid-column:1/-1"><div class="spinner"></div>Loading...</div>
+        </div>
+        <div class="quick-actions">
+          <div class="quick-btn" onclick="openModal('addTransaction')"><div class="q-icon">➕</div><div class="q-label">Add Expense</div></div>
+          <div class="quick-btn" onclick="openModal('sendMoney')"><div class="q-icon">📤</div><div class="q-label">Send Money</div></div>
+          <div class="quick-btn" onclick="openModal('addTransaction')"><div class="q-icon">📥</div><div class="q-label">Add Income</div></div>
+          <div class="quick-btn" onclick="navigate('bills',document.querySelector('.nav-item:nth-child(10)'))"><div class="q-icon">📋</div><div class="q-label">Pay Bills</div></div>
+        </div>
+        <div class="two-col mb-6">
+          <div class="card">
+            <div class="card-header">
+              <div><div class="card-title">Income vs Expenses</div><div class="card-subtitle">Last 6 months</div></div>
+            </div>
+            <div class="chart-bars" id="mainChart"><div class="page-loading"><div class="spinner"></div></div></div>
+            <div class="chart-legend">
+              <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>Income</div>
+              <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div>Expenses</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div><div class="card-title">Spending by Category</div><div class="card-subtitle">This month</div></div></div>
+            <div class="donut-wrap">
+              <div style="position:relative;width:150px;height:150px">
+                <svg width="150" height="150" viewBox="0 0 150 150" id="donutChart"></svg>
+                <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
+                  <div class="donut-total" id="donutTotal">-</div>
+                  <div class="donut-label">Total</div>
+                </div>
+              </div>
+              <div class="donut-legend" id="donutLegend"></div>
+            </div>
+          </div>
+        </div>
+        <div class="two-col">
+          <div class="card">
+            <div class="card-header"><div><div class="card-title">Recent Transactions</div><div class="card-subtitle">Latest activity</div></div><button class="btn btn-ghost btn-sm" onclick="navigate('transactions',document.querySelectorAll('.nav-item')[1])">View all →</button></div>
+            <div class="tx-list" id="recentTxList"><div class="page-loading"><div class="spinner"></div></div></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div><div class="card-title">Budget Progress</div><div class="card-subtitle">This month</div></div></div>
+            <div class="budget-list" id="dashBudgetList"><div class="page-loading"><div class="spinner"></div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TRANSACTIONS -->
+      <div class="page" id="page-transactions">
+        <div class="flex-between mb-6">
+          <div class="tabs" style="flex:1;max-width:400px">
+            <div class="tab active" onclick="filterTx('all',this)">All</div>
+            <div class="tab" onclick="filterTx('income',this)">Income</div>
+            <div class="tab" onclick="filterTx('expense',this)">Expenses</div>
+            <div class="tab" onclick="filterTx('pending',this)">Pending</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <select class="form-select" style="width:auto;padding:8px 14px;font-size:13px" onchange="filterTxCat(this.value)" id="catFilter">
+              <option value="">All Categories</option>
+              <option>Food &amp; Dining</option><option>Shopping</option><option>Transport</option>
+              <option>Housing</option><option>Entertainment</option><option>Healthcare</option>
+              <option>Education</option><option>Transfer</option><option>Payment</option>
+            </select>
+            <button class="btn btn-primary" onclick="openModal('addTransaction')">+ Add Transaction</button>
+          </div>
+        </div>
+        <div class="card"><div class="tx-list" id="allTxList"><div class="page-loading"><div class="spinner"></div></div></div></div>
+      </div>
+
+      <!-- ANALYTICS -->
+      <div class="page" id="page-analytics">
+        <div class="insight-cards" id="insightCards">
+          <div class="page-loading" style="grid-column:1/-1"><div class="spinner"></div></div>
+        </div>
+        <div class="two-col">
+          <div class="card">
+            <div class="card-header"><div class="card-title">Monthly Trend</div></div>
+            <div class="chart-bars" id="analyticsChart"><div class="page-loading"><div class="spinner"></div></div></div>
+            <div class="chart-legend">
+              <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div>Expenses</div>
+              <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>Income</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">Category Breakdown</div></div>
+            <div id="catBreakdown"><div class="page-loading"><div class="spinner"></div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BUDGETS -->
+      <div class="page" id="page-budgets">
+        <div class="flex-between mb-6">
+          <div style="font-size:14px;color:var(--text2)" id="budgetSummary"></div>
+          <button class="btn btn-primary" onclick="openModal('addBudget')">+ Add Budget</button>
+        </div>
+        <div class="three-col" id="budgetCards"><div class="page-loading" style="grid-column:1/-1"><div class="spinner"></div></div></div>
+      </div>
+
+      <!-- PAYMENTS -->
+      <div class="page" id="page-payments">
+        <div class="flex-between mb-6">
+          <div class="card-title">My Payment Cards</div>
+          <button class="btn btn-primary" onclick="openModal('addCard')">+ Add Card</button>
+        </div>
+        <div class="cards-row" id="paymentCardsList"><div class="page-loading"><div class="spinner"></div></div></div>
+        <div class="two-col">
+          <div class="card">
+            <div class="card-header"><div class="card-title">Recent Transactions</div></div>
+            <div class="tx-list" id="cardTxList"></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">Card Spending Limits</div></div>
+            <div id="cardLimits"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TRANSFER -->
+      <div class="page" id="page-transfer">
+        <div style="max-width:560px;margin:0 auto">
+          <div class="card">
+            <div class="card-title" style="margin-bottom:24px;font-size:18px">Send Money</div>
+            <div class="payment-methods" id="transferMethods">
+              <div class="payment-method-btn active" onclick="selectPM(this)"><div class="pm-icon">📱</div><div class="pm-name">UPI</div></div>
+              <div class="payment-method-btn" onclick="selectPM(this)"><div class="pm-icon">🏦</div><div class="pm-name">Bank Transfer</div></div>
+              <div class="payment-method-btn" onclick="selectPM(this)"><div class="pm-icon">💳</div><div class="pm-name">Card</div></div>
+              <div class="payment-method-btn" onclick="selectPM(this)"><div class="pm-icon">🌐</div><div class="pm-name">International</div></div>
+            </div>
+            <div class="form-group"><label class="form-label">Recipient UPI ID / Account</label><input class="form-input" id="transferRecipient" placeholder="name@upi or phone@bank" /></div>
+            <div class="form-group"><label class="form-label">Amount (₹)</label><input class="form-input" id="transferAmount" type="number" placeholder="0.00" style="font-size:20px;font-family:'Syne',sans-serif;font-weight:700" /></div>
+            <div class="form-group"><label class="form-label">Note (optional)</label><input class="form-input" id="transferNote" placeholder="Add a note..." /></div>
+            <button class="btn btn-primary" style="width:100%;justify-content:center;padding:14px;font-size:15px;margin-top:8px" onclick="doTransfer()">Send Money 🔒</button>
+            <div style="text-align:center;font-size:11px;color:var(--text2);margin-top:12px">🔐 256-bit encrypted · Instant transfers · Zero fees</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BILLS -->
+      <div class="page" id="page-bills">
+        <div class="flex-between mb-6">
+          <div class="card-subtitle">Upcoming bills this month</div>
+          <button class="btn btn-primary" onclick="openModal('addBill')">+ Add Bill</button>
+        </div>
+        <div class="card"><div class="tx-list" id="billsList"><div class="page-loading"><div class="spinner"></div></div></div></div>
+      </div>
+
+      <!-- SETTINGS -->
+      <div class="page" id="page-settings">
+        <div class="settings-grid">
+          <div>
+            <div class="card" style="margin-bottom:20px">
+              <div class="settings-section-title">Account &amp; Profile</div>
+              <div class="form-group"><label class="form-label">Full Name</label><input class="form-input" id="settingsName" /></div>
+              <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="settingsEmail" readonly style="opacity:.6" /></div>
+              <div class="form-group"><label class="form-label">Currency</label><select class="form-select" id="settingsCurrency"><option value="INR">₹ Indian Rupee (INR)</option><option value="USD">$ US Dollar (USD)</option><option value="EUR">€ Euro (EUR)</option></select></div>
+              <button class="btn btn-primary" style="margin-top:8px" onclick="saveProfile()">Save Changes</button>
+            </div>
+            <div class="card">
+              <div class="settings-section-title">Change Password</div>
+              <div class="form-group"><label class="form-label">Current Password</label><input class="form-input" id="curPwd" type="password" /></div>
+              <div class="form-group"><label class="form-label">New Password</label><input class="form-input" id="newPwd" type="password" /></div>
+              <button class="btn btn-ghost" style="margin-top:4px" onclick="changePassword()">Update Password</button>
+            </div>
+          </div>
+          <div>
+            <div class="card" style="margin-bottom:20px">
+              <div class="settings-section-title">Notifications</div>
+              <div class="settings-row"><div><div class="settings-label">Transaction Alerts</div><div class="settings-desc">Get notified on every transaction</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+              <div class="settings-row"><div><div class="settings-label">Budget Warnings</div><div class="settings-desc">Alert when near budget limit</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+              <div class="settings-row"><div><div class="settings-label">Bill Reminders</div><div class="settings-desc">3 days before due date</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+            </div>
+            <div class="card">
+              <div class="settings-section-title">Security</div>
+              <div class="settings-row"><div><div class="settings-label">Two-Factor Auth</div><div class="settings-desc">Extra security via OTP</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+              <div class="settings-row"><div><div class="settings-label">Biometric Login</div><div class="settings-desc">Face ID / Fingerprint</div></div><div class="toggle" onclick="this.classList.toggle('on')"></div></div>
+              <div style="margin-top:16px;display:flex;gap:8px">
+                <button class="btn btn-ghost btn-sm" onclick="exportData()">📤 Export CSV</button>
+                <button class="btn btn-ghost btn-sm" onclick="showToast('Report downloaded!','success')">📊 Report</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </main>
+</div>
+
+<!-- MODALS -->
+<div class="modal-overlay" id="modal-addTransaction">
+  <div class="modal">
+    <div class="modal-title">Add Transaction<button class="modal-close" onclick="closeModal('addTransaction')">✕</button></div>
+    <div class="type-toggle">
+      <div class="type-btn active expense" onclick="setType('expense',this)">📉 Expense</div>
+      <div class="type-btn income" onclick="setType('income',this)">📈 Income</div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Amount (₹)</label><input class="form-input" id="txAmount" type="number" placeholder="0.00" /></div>
+      <div class="form-group"><label class="form-label">Date</label><input class="form-input" id="txDate" type="date" /></div>
+    </div>
+    <div class="form-group"><label class="form-label">Description</label><input class="form-input" id="txDesc" placeholder="What was this for?" /></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Category</label>
+        <select class="form-select" id="txCategory">
+          <option>Food &amp; Dining</option><option>Shopping</option><option>Transport</option>
+          <option>Housing</option><option>Healthcare</option><option>Entertainment</option>
+          <option>Education</option><option>Business</option><option>Income</option><option>Utilities</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Payment Method</label>
+        <select class="form-select" id="txMethod">
+          <option value="credit_card">Credit Card</option><option value="debit_card">Debit Card</option>
+          <option value="upi">UPI</option><option value="cash">Cash</option><option value="net_banking">Net Banking</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('addTransaction')">Cancel</button>
+      <button class="btn btn-primary" id="addTxBtn" onclick="addTransaction()">Add Transaction</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-sendMoney">
+  <div class="modal">
+    <div class="modal-title">Quick Send<button class="modal-close" onclick="closeModal('sendMoney')">✕</button></div>
+    <div class="payment-methods" style="grid-template-columns:1fr 1fr 1fr 1fr">
+      <div class="payment-method-btn active" onclick="selectPM(this)"><div class="pm-icon">📱</div><div class="pm-name">UPI</div></div>
+      <div class="payment-method-btn" onclick="selectPM(this)"><div class="pm-icon">🏦</div><div class="pm-name">NEFT</div></div>
+      <div class="payment-method-btn" onclick="selectPM(this)"><div class="pm-icon">⚡</div><div class="pm-name">IMPS</div></div>
+      <div class="payment-method-btn" onclick="selectPM(this)"><div class="pm-icon">💳</div><div class="pm-name">Card</div></div>
+    </div>
+    <div class="form-group"><label class="form-label">To</label><input class="form-input" id="sendRecipient" placeholder="e.g. 9876543210@upi" /></div>
+    <div class="form-group"><label class="form-label">Amount (₹)</label><input class="form-input" id="sendAmount" type="number" placeholder="0.00" /></div>
+    <div class="form-group"><label class="form-label">Remark</label><input class="form-input" id="sendNote" placeholder="Add a note..." /></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('sendMoney')">Cancel</button>
+      <button class="btn btn-primary" id="sendBtn" onclick="doSendMoney()">Send 🔒</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-addBudget">
+  <div class="modal">
+    <div class="modal-title">Create Budget<button class="modal-close" onclick="closeModal('addBudget')">✕</button></div>
+    <div class="form-group"><label class="form-label">Category</label>
+      <select class="form-select" id="budgetCat">
+        <option>Food &amp; Dining</option><option>Shopping</option><option>Transport</option>
+        <option>Entertainment</option><option>Healthcare</option><option>Housing</option><option>Utilities</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Limit (₹)</label><input class="form-input" id="budgetLimit" type="number" placeholder="5000" /></div>
+      <div class="form-group"><label class="form-label">Period</label><select class="form-select" id="budgetPeriod"><option value="monthly">Monthly</option><option value="weekly">Weekly</option><option value="yearly">Yearly</option></select></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('addBudget')">Cancel</button>
+      <button class="btn btn-primary" id="addBudgetBtn" onclick="createBudget()">Create Budget</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-addCard">
+  <div class="modal">
+    <div class="modal-title">Add Payment Card<button class="modal-close" onclick="closeModal('addCard')">✕</button></div>
+    <div class="form-group"><label class="form-label">Last 4 Digits</label><input class="form-input" id="cardLast4" placeholder="4521" maxlength="4" /></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Cardholder Name</label><input class="form-input" id="cardHolder" placeholder="As on card" /></div>
+      <div class="form-group"><label class="form-label">Bank Name</label><input class="form-input" id="cardBank" placeholder="HDFC, SBI..." /></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Expiry Month</label><input class="form-input" id="cardMonth" type="number" placeholder="MM" min="1" max="12" /></div>
+      <div class="form-group"><label class="form-label">Expiry Year</label><input class="form-input" id="cardYear" type="number" placeholder="YYYY" min="2024" /></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Card Type</label><select class="form-select" id="cardType"><option value="visa">Visa</option><option value="mastercard">Mastercard</option><option value="amex">Amex</option><option value="rupay">RuPay</option></select></div>
+      <div class="form-group"><label class="form-label">Credit Limit (₹)</label><input class="form-input" id="cardLimit" type="number" placeholder="Optional" /></div>
+    </div>
+    <div style="font-size:11px;color:var(--text2);padding:10px;background:var(--surface2);border-radius:8px;margin-bottom:4px">🔐 Only last 4 digits stored. CVV is never saved.</div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('addCard')">Cancel</button>
+      <button class="btn btn-primary" id="addCardBtn" onclick="addCard()">Add Card 🔒</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-addBill">
+  <div class="modal">
+    <div class="modal-title">Add Bill / Recurring<button class="modal-close" onclick="closeModal('addBill')">✕</button></div>
+    <div class="form-group"><label class="form-label">Bill Name</label><input class="form-input" id="billName" placeholder="e.g. Netflix, Electricity" /></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Amount (₹)</label><input class="form-input" id="billAmount" type="number" placeholder="0.00" /></div>
+      <div class="form-group"><label class="form-label">Due Date</label><input class="form-input" id="billDue" type="date" /></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Frequency</label><select class="form-select" id="billFreq"><option value="monthly">Monthly</option><option value="weekly">Weekly</option><option value="quarterly">Quarterly</option><option value="yearly">Yearly</option></select></div>
+      <div class="form-group"><label class="form-label">Auto Pay</label><select class="form-select" id="billAuto"><option value="true">Enabled</option><option value="false">Disabled</option></select></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('addBill')">Cancel</button>
+      <button class="btn btn-primary" id="addBillBtn" onclick="createBill()">Add Bill</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-logout">
+  <div class="modal" style="max-width:360px;text-align:center">
+    <div style="font-size:48px;margin-bottom:16px">👋</div>
+    <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:700;margin-bottom:8px">Sign Out?</div>
+    <div style="font-size:14px;color:var(--text2);margin-bottom:28px">You'll be logged out of your Spendly account.</div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-ghost" style="flex:1;justify-content:center" onclick="closeModal('logout')">Cancel</button>
+      <button class="btn" style="flex:1;justify-content:center;background:linear-gradient(135deg,#ff5c7a,#cc3355);color:white" onclick="doLogout()">Sign Out</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════════
+//  CONFIG — change to your Flask server address
+// ══════════════════════════════════════════════════════════════════════
+const API = "http://localhost:5000/api";
+
+// ══════════════════════════════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════════════════════════════
+let accessToken  = null;
+let currentUser  = null;
+let refreshToken = localStorage.getItem("spendly_refresh") || null;
+let currentTxType = "expense";
+let currentTransferMethod = "upi";
+let txFilterType = "all";
+let txFilterCat  = "";
+
+// ══════════════════════════════════════════════════════════════════════
+//  API HELPERS
+// ══════════════════════════════════════════════════════════════════════
+async function apiFetch(path, options = {}) {
+  try {
+    const res = await fetch(`${API}${path}`, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        ...(accessToken ? {"Authorization": `Bearer ${accessToken}`} : {}),
+        ...(options.headers || {}),
+      },
+    });
+    if (res.status === 401) {
+      // Try to refresh
+      const refreshed = await tryRefresh();
+      if (refreshed) {
+        return apiFetch(path, options); // retry once
+      }
+      doLogout(); return null;
+    }
+    return await res.json();
+  } catch (e) {
+    console.error("API error:", e);
+    showToast("Cannot connect to server. Is Flask running?", "error");
+    return null;
+  }
+}
+
+async function tryRefresh() {
+  if (!refreshToken) return false;
+  try {
+    const res  = await fetch(`${API}/auth/refresh`, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({refresh_token: refreshToken}),
+    });
+    const json = await res.json();
+    if (json.success) {
+      accessToken  = json.data.tokens.access_token;
+      refreshToken = json.data.tokens.refresh_token;
+      localStorage.setItem("spendly_refresh", refreshToken);
+      return true;
+    }
+  } catch(e) {}
+  return false;
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  AUTH
+// ══════════════════════════════════════════════════════════════════════
+function switchAuthTab(tab) {
+  document.querySelectorAll(".auth-tab").forEach((t,i) =>
+    t.classList.toggle("active", (tab==="login"&&i===0)||(tab==="signup"&&i===1)));
+  document.getElementById("loginForm").classList.toggle("active", tab==="login");
+  document.getElementById("signupForm").classList.toggle("active", tab==="signup");
+}
+
+function togglePwd(id, icon) {
+  const el = document.getElementById(id);
+  el.type = el.type === "password" ? "text" : "password";
+  icon.textContent = el.type === "password" ? "👁️" : "🙈";
+}
+
+function fillDemo() {
+  document.getElementById("loginEmail").value    = "demo@spendly.app";
+  document.getElementById("loginPassword").value = "Demo@123";
+  showToast("Demo credentials filled!", "info");
+}
+
+async function doLogin() {
+  const email = document.getElementById("loginEmail").value.trim();
+  const password = document.getElementById("loginPassword").value;
+  const errEl = document.getElementById("loginError");
+  errEl.classList.remove("show");
+
+  if (!email || !password) {
+    errEl.textContent = "Please enter email and password.";
+    errEl.classList.add("show"); return;
+  }
+
+  const btn = document.getElementById("loginBtn");
+  btn.innerHTML = '<span class="auth-loading"></span>Signing in...';
+  btn.disabled  = true;
+
+  const json = await fetch(`${API}/auth/login`, {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({email, password}),
+  }).then(r => r.json()).catch(() => null);
+
+  btn.innerHTML = "Sign In"; btn.disabled = false;
+
+  if (!json) {
+    errEl.textContent = "Cannot connect to server. Make sure Flask is running on port 5000.";
+    errEl.classList.add("show"); return;
+  }
+  if (!json.success) {
+    errEl.textContent = json.error || "Invalid credentials";
+    errEl.classList.add("show"); return;
+  }
+  loginSuccess(json.data.user, json.data.tokens);
+}
+
+async function doSignup() {
+  const name     = document.getElementById("signupName").value.trim();
+  const email    = document.getElementById("signupEmail").value.trim();
+  const password = document.getElementById("signupPassword").value;
+  const confirm  = document.getElementById("signupConfirm").value;
+  const errEl    = document.getElementById("signupError");
+  const sucEl    = document.getElementById("signupSuccess");
+  errEl.classList.remove("show"); sucEl.classList.remove("show");
+
+  if (!name||!email||!password||!confirm) { errEl.textContent="Fill all fields"; errEl.classList.add("show"); return; }
+  if (password.length < 6)  { errEl.textContent="Password min 6 chars"; errEl.classList.add("show"); return; }
+  if (password !== confirm)  { errEl.textContent="Passwords don't match"; errEl.classList.add("show"); return; }
+
+  const btn = document.getElementById("signupBtn");
+  btn.innerHTML = '<span class="auth-loading"></span>Creating...'; btn.disabled = true;
+
+  const json = await fetch(`${API}/auth/register`, {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({name, email, password}),
+  }).then(r => r.json()).catch(() => null);
+
+  btn.innerHTML = "Create Account"; btn.disabled = false;
+
+  if (!json) { errEl.textContent = "Cannot connect to server."; errEl.classList.add("show"); return; }
+  if (!json.success) { errEl.textContent = json.error || "Registration failed"; errEl.classList.add("show"); return; }
+
+  sucEl.classList.add("show");
+  setTimeout(() => loginSuccess(json.data.user, json.data.tokens), 1000);
+}
+
+function loginSuccess(user, tokens) {
+  currentUser  = user;
+  accessToken  = tokens.access_token;
+  refreshToken = tokens.refresh_token;
+  localStorage.setItem("spendly_refresh", refreshToken);
+
+  const initials = user.name.split(" ").map(n=>n[0]).join("").toUpperCase().slice(0,2);
+  document.getElementById("sidebarAvatar").textContent = initials;
+  document.getElementById("sidebarName").textContent   = user.name;
+  document.getElementById("settingsName").value  = user.name;
+  document.getElementById("settingsEmail").value = user.email;
+
+  document.getElementById("authScreen").classList.add("hidden");
+  document.getElementById("mainApp").style.display = "flex";
+
+  document.getElementById("txDate").value   = new Date().toISOString().split("T")[0];
+  document.getElementById("billDue").value  = new Date().toISOString().split("T")[0];
+  loadDashboard();
+  showToast(`Welcome back, ${user.name.split(" ")[0]}! 👋`, "success");
+}
+
+async function doLogout() {
+  closeModal("logout");
+  if (refreshToken) {
+    await apiFetch("/auth/logout", {method:"POST", body: JSON.stringify({refresh_token: refreshToken})});
+  }
+  accessToken = null; refreshToken = null; currentUser = null;
+  localStorage.removeItem("spendly_refresh");
+  document.getElementById("mainApp").style.display = "none";
+  document.getElementById("authScreen").classList.remove("hidden");
+  document.getElementById("loginEmail").value    = "";
+  document.getElementById("loginPassword").value = "";
+  document.getElementById("loginError").classList.remove("show");
+  switchAuthTab("login");
+  showToast("Signed out successfully", "info");
+}
+
+// Auto-login with refresh token
+window.addEventListener("DOMContentLoaded", async () => {
+  if (refreshToken) {
+    const ok = await tryRefresh();
+    if (ok) {
+      const json = await apiFetch("/auth/me");
+      if (json?.success) {
+        loginSuccess(json.data.user, {access_token: accessToken, refresh_token: refreshToken});
+        return;
+      }
+    }
+    localStorage.removeItem("spendly_refresh");
+  }
+});
+
+// ══════════════════════════════════════════════════════════════════════
+//  NAVIGATION
+// ══════════════════════════════════════════════════════════════════════
+function navigate(page, el) {
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+  document.getElementById("page-"+page).classList.add("active");
+  const titles = {dashboard:"Dashboard",transactions:"Transactions",analytics:"Analytics",
+                  budgets:"Budgets",payments:"Payment Cards",transfer:"Transfer Money",
+                  bills:"Bills & Recurring",settings:"Settings"};
+  document.getElementById("pageTitle").textContent = titles[page] || page;
+  if (el) el.classList.add("active");
+  // Lazy load page data
+  if (page==="transactions")  loadTransactions();
+  if (page==="analytics")     loadAnalytics();
+  if (page==="budgets")       loadBudgets();
+  if (page==="payments")      loadCards();
+  if (page==="bills")         loadBills();
+  if (page==="dashboard")     loadDashboard();
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  DASHBOARD
+// ══════════════════════════════════════════════════════════════════════
+async function loadDashboard() {
+  const json = await apiFetch("/dashboard/summary");
+  if (!json?.success) return;
+  const d = json.data;
+
+  // Stats
+  document.getElementById("statsGrid").innerHTML = `
+    <div class="stat-card blue"><div class="stat-icon blue">💰</div><div class="stat-label">Monthly Income</div><div class="stat-value">${fmt(d.stats.income)}</div><div class="stat-change ${d.stats.income_change>=0?'up':'down'}">${d.stats.income_change!=null?(d.stats.income_change>=0?'↑':'↓')+Math.abs(d.stats.income_change)+'% vs last month':'—'}</div></div>
+    <div class="stat-card green"><div class="stat-icon green">📈</div><div class="stat-label">Total Savings</div><div class="stat-value">${fmt(d.stats.savings)}</div><div class="stat-change up">↑ ${d.stats.savings_rate}% savings rate</div></div>
+    <div class="stat-card red"><div class="stat-icon red">📉</div><div class="stat-label">Monthly Expenses</div><div class="stat-value">${fmt(d.stats.expense)}</div><div class="stat-change ${d.stats.expense_change>=0?'down':'up'}">${d.stats.expense_change!=null?(d.stats.expense_change>=0?'↑':'↓')+Math.abs(d.stats.expense_change)+'% vs last month':'—'}</div></div>
+    <div class="stat-card yellow"><div class="stat-icon yellow">🎯</div><div class="stat-label">Savings Rate</div><div class="stat-value">${d.stats.savings_rate}%</div><div class="stat-change up">This month</div></div>`;
+
+  // Chart
+  loadChartSummary("mainChart");
+
+  // Donut
+  renderDonut(d.top_categories);
+
+  // Recent TXs
+  document.getElementById("recentTxList").innerHTML =
+    d.recent_transactions.length ? d.recent_transactions.map(txHTML).join("") : emptyState("No transactions yet");
+
+  // Budgets
+  document.getElementById("dashBudgetList").innerHTML =
+    d.budgets.length ? d.budgets.map(budgetRow).join("") : "<div style='color:var(--text2);font-size:13px;padding:12px 0'>No budgets set up yet</div>";
+}
+
+async function loadChartSummary(elId) {
+  const json = await apiFetch("/transactions/summary?months=6");
+  if (!json?.success) return;
+  renderChart(elId, json.data.summary);
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  TRANSACTIONS
+// ══════════════════════════════════════════════════════════════════════
+async function loadTransactions() {
+  document.getElementById("allTxList").innerHTML = '<div class="page-loading"><div class="spinner"></div></div>';
+  let url = `/transactions?per_page=50&sort_by=date&sort_dir=desc`;
+  if (txFilterType !== "all" && txFilterType !== "pending") url += `&type=${txFilterType}`;
+  if (txFilterType === "pending") url += `&status=pending`;
+  if (txFilterCat) url += `&category=${encodeURIComponent(txFilterCat)}`;
+  const json = await apiFetch(url);
+  if (!json?.success) return;
+  const txs = json.data.transactions;
+  document.getElementById("allTxList").innerHTML =
+    txs.length ? txs.map(txHTML).join("") : emptyState("No transactions found");
+}
+
+function filterTx(type, el) {
+  document.querySelectorAll("#page-transactions .tab").forEach(t=>t.classList.remove("active"));
+  el.classList.add("active");
+  txFilterType = type;
+  loadTransactions();
+}
+
+function filterTxCat(val) {
+  txFilterCat = val;
+  loadTransactions();
+}
+
+async function onSearch(val) {
+  if (!accessToken) return;
+  if (val.length < 2 && val.length > 0) return;
+  const url = val ? `/transactions?search=${encodeURIComponent(val)}&per_page=30` : `/transactions?per_page=30`;
+  const json = await apiFetch(url);
+  if (!json?.success) return;
+  const txs = json.data.transactions;
+  const el  = document.getElementById("allTxList");
+  if (el) el.innerHTML = txs.length ? txs.map(txHTML).join("") : emptyState("No results");
+}
+
+async function addTransaction() {
+  const btn   = document.getElementById("addTxBtn");
+  const amount = document.getElementById("txAmount").value;
+  const desc   = document.getElementById("txDesc").value.trim();
+  if (!amount || !desc) { showToast("Fill in all fields", "error"); return; }
+
+  btn.disabled = true; btn.textContent = "Adding...";
+  const json = await apiFetch("/transactions", {
+    method: "POST",
+    body: JSON.stringify({
+      type:           currentTxType,
+      amount:         parseFloat(amount),
+      description:    desc,
+      category:       document.getElementById("txCategory").value,
+      payment_method: document.getElementById("txMethod").value,
+      date:           document.getElementById("txDate").value,
+    }),
+  });
+  btn.disabled = false; btn.textContent = "Add Transaction";
+  if (!json?.success) { showToast(json?.error || "Failed", "error"); return; }
+  closeModal("addTransaction");
+  document.getElementById("txAmount").value = "";
+  document.getElementById("txDesc").value   = "";
+  loadDashboard();
+  loadTransactions();
+  showToast("Transaction added!", "success");
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  ANALYTICS
+// ══════════════════════════════════════════════════════════════════════
+async function loadAnalytics() {
+  const [summaryJson, catJson] = await Promise.all([
+    apiFetch("/transactions/summary?months=6"),
+    apiFetch("/transactions/categories"),
+  ]);
+  if (summaryJson?.success) {
+    renderChart("analyticsChart", summaryJson.data.summary);
+    const last = summaryJson.data.summary.slice(-1)[0] || {};
+    document.getElementById("insightCards").innerHTML = `
+      <div class="insight-card"><div class="insight-icon">📊</div><div class="insight-title">Last Month Income</div><div class="insight-value">${fmt(last.income||0)}</div></div>
+      <div class="insight-card"><div class="insight-icon">💸</div><div class="insight-title">Last Month Expense</div><div class="insight-value">${fmt(last.expense||0)}</div></div>
+      <div class="insight-card"><div class="insight-icon">💰</div><div class="insight-title">Net Savings</div><div class="insight-value">${fmt((last.income||0)-(last.expense||0))}</div></div>
+      <div class="insight-card"><div class="insight-icon">📅</div><div class="insight-title">Avg Monthly Spend</div><div class="insight-value">${fmt(summaryJson.data.summary.reduce((s,r)=>s+(r.expense||0),0)/Math.max(1,summaryJson.data.summary.length))}</div></div>
+      <div class="insight-card"><div class="insight-icon">📈</div><div class="insight-title">Avg Monthly Income</div><div class="insight-value">${fmt(summaryJson.data.summary.reduce((s,r)=>s+(r.income||0),0)/Math.max(1,summaryJson.data.summary.length))}</div></div>
+      <div class="insight-card"><div class="insight-icon">🎯</div><div class="insight-title">Months Tracked</div><div class="insight-value">${summaryJson.data.summary.length}</div></div>`;
+  }
+  if (catJson?.success) {
+    const cats = catJson.data.categories;
+    document.getElementById("catBreakdown").innerHTML = cats.length
+      ? cats.map(c=>`<div style="margin-bottom:14px">
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px">
+            <span>${c.category}</span>
+            <span style="font-weight:600">${fmt(c.amount)} <span style="color:var(--text2);font-size:11px">${c.percent}%</span></span>
+          </div>
+          <div class="budget-bar-track"><div class="budget-bar-fill" style="width:${c.percent}%;background:var(--accent)"></div></div>
+        </div>`).join("")
+      : emptyState("No expense data this month");
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  BUDGETS
+// ══════════════════════════════════════════════════════════════════════
+async function loadBudgets() {
+  const json = await apiFetch("/budgets");
+  if (!json?.success) return;
+  const { budgets, total_limit, total_spent } = json.data;
+  document.getElementById("budgetSummary").innerHTML =
+    `Monthly budget limit: <strong style="color:var(--text)">${fmt(total_limit)}</strong> · Spent: <strong style="color:var(--red)">${fmt(total_spent)}</strong>`;
+  document.getElementById("budgetCards").innerHTML = budgets.length
+    ? budgets.map(b=>{
+        const color = b.percent>=100?"var(--red)":b.percent>=80?"var(--yellow)":"var(--green)";
+        return `<div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+            <div style="font-size:28px">${b.icon}</div>
+            <span class="tx-status ${b.percent>=100?'failed':b.percent>=80?'pending':'completed'}">${b.percent>=100?"Over":b.percent>=80?"Warning":"On Track"}</span>
+          </div>
+          <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700;margin-bottom:4px">${b.category}</div>
+          <div style="font-size:12px;color:var(--text2);margin-bottom:16px">${fmt(b.remaining)} remaining</div>
+          <div class="budget-bar-track" style="height:8px;margin-bottom:12px">
+            <div class="budget-bar-fill" style="width:${b.percent}%;background:${color}"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:12px">
+            <span style="color:var(--text2)">Spent: <strong style="color:var(--text)">${fmt(b.spent)}</strong></span>
+            <span style="color:var(--text2)">Limit: <strong style="color:var(--text)">${fmt(b.limit)}</strong></span>
+          </div>
+        </div>`;
+      }).join("")
+    : `<div class="card" style="grid-column:1/-1">${emptyState("No budgets yet. Add one to start tracking!")}</div>`;
+}
+
+async function createBudget() {
+  const btn = document.getElementById("addBudgetBtn");
+  const limit = document.getElementById("budgetLimit").value;
+  if (!limit) { showToast("Enter a budget limit", "error"); return; }
+  btn.disabled=true; btn.textContent="Creating...";
+  const json = await apiFetch("/budgets", {
+    method: "POST",
+    body: JSON.stringify({
+      category: document.getElementById("budgetCat").value,
+      limit: parseFloat(limit),
+      period: document.getElementById("budgetPeriod").value,
+    }),
+  });
+  btn.disabled=false; btn.textContent="Create Budget";
+  if (!json?.success) { showToast(json?.error||"Failed","error"); return; }
+  closeModal("addBudget");
+  document.getElementById("budgetLimit").value="";
+  loadBudgets(); showToast("Budget created!","success");
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  BILLS
+// ══════════════════════════════════════════════════════════════════════
+async function loadBills() {
+  const json = await apiFetch("/bills");
+  if (!json?.success) return;
+  const bills = json.data.bills;
+  document.getElementById("billsList").innerHTML = bills.length
+    ? bills.map(b=>`
+        <div class="tx-item">
+          <div class="tx-icon" style="background:rgba(124,106,255,.1)">${b.icon}</div>
+          <div class="tx-info">
+            <div class="tx-name">${b.name}</div>
+            <div class="tx-meta">${b.frequency} · Due: ${b.due_date} · ${b.auto_pay?"🤖 Auto Pay":"⚠️ Manual"}</div>
+          </div>
+          <div style="text-align:right">
+            <div class="tx-amount">${fmt(b.amount)}</div>
+            <div class="tx-meta">${b.category}</div>
+          </div>
+          <span class="tx-status ${b.status==='due'||b.status==='overdue'?'pending':'completed'}">${b.status}</span>
+          <button class="btn btn-ghost btn-sm" onclick="payBill(${b.id},this,'${b.name}')">Pay Now</button>
+        </div>`).join("")
+    : emptyState("No bills added yet");
+}
+
+async function payBill(id, btn, name) {
+  btn.disabled=true; btn.textContent="Paying...";
+  const json = await apiFetch(`/bills/${id}/pay`, {method:"POST"});
+  if (!json?.success) { btn.disabled=false; btn.textContent="Pay Now"; showToast(json?.error||"Failed","error"); return; }
+  btn.textContent="✓ Paid"; btn.style.color="var(--green)";
+  showToast(`${name} paid!`,"success");
+}
+
+async function createBill() {
+  const btn  = document.getElementById("addBillBtn");
+  const name = document.getElementById("billName").value.trim();
+  const amt  = document.getElementById("billAmount").value;
+  const due  = document.getElementById("billDue").value;
+  if (!name||!amt||!due) { showToast("Fill all fields","error"); return; }
+  btn.disabled=true; btn.textContent="Adding...";
+  const json = await apiFetch("/bills", {
+    method:"POST",
+    body: JSON.stringify({name, amount:parseFloat(amt), due_date:due,
+                          frequency:document.getElementById("billFreq").value,
+                          auto_pay:document.getElementById("billAuto").value==="true"}),
+  });
+  btn.disabled=false; btn.textContent="Add Bill";
+  if (!json?.success) { showToast(json?.error||"Failed","error"); return; }
+  closeModal("addBill");
+  document.getElementById("billName").value="";
+  document.getElementById("billAmount").value="";
+  loadBills(); showToast("Bill added!","success");
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  CARDS
+// ══════════════════════════════════════════════════════════════════════
+async function loadCards() {
+  const json = await apiFetch("/payments/cards");
+  if (!json?.success) return;
+  const cards = json.data.cards;
+  document.getElementById("paymentCardsList").innerHTML = cards.length
+    ? cards.map(c=>`
+        <div class="payment-card ${c.card_type}">
+          <div class="card-chip"></div>
+          <div class="card-number">•••• •••• •••• ${c.last_four}</div>
+          <div class="card-footer">
+            <div>
+              <div class="card-name">${c.cardholder}</div>
+              <div class="card-expiry">Exp: ${c.expiry}${c.bank_name?" · "+c.bank_name:""}</div>
+            </div>
+            <div style="font-weight:800;font-family:'Syne',sans-serif;font-size:14px;color:rgba(255,255,255,.7)">${c.card_type.toUpperCase()}</div>
+          </div>
+        </div>`).join("")
+    : '<div style="color:var(--text2);font-size:14px;padding:20px">No cards added yet</div>';
+
+  // Card limits
+  document.getElementById("cardLimits").innerHTML = cards.filter(c=>c.credit_limit).map(c=>{
+    const pct = 0; // would need transaction data per card
+    return `<div style="margin-bottom:18px">
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px">
+        <span>${c.bank_name||c.card_type} ••••${c.last_four}</span>
+        <span style="color:var(--text2)">Limit: ${fmt(c.credit_limit)}</span>
+      </div>
+      <div class="budget-bar-track" style="height:8px"><div class="budget-bar-fill" style="width:${pct}%;background:var(--accent)"></div></div>
+    </div>`;
+  }).join("") || '<div style="color:var(--text2);font-size:13px">No credit limits set</div>';
+
+  // Recent txs for cards page
+  const txJson = await apiFetch("/transactions?per_page=6");
+  if (txJson?.success) {
+    document.getElementById("cardTxList").innerHTML = txJson.data.transactions.map(txHTML).join("");
+  }
+}
+
+async function addCard() {
+  const btn   = document.getElementById("addCardBtn");
+  const last4 = document.getElementById("cardLast4").value;
+  const ch    = document.getElementById("cardHolder").value.trim();
+  const month = document.getElementById("cardMonth").value;
+  const year  = document.getElementById("cardYear").value;
+  if (!last4||!ch||!month||!year) { showToast("Fill all required fields","error"); return; }
+  btn.disabled=true; btn.textContent="Adding...";
+  const json = await apiFetch("/payments/cards", {
+    method:"POST",
+    body: JSON.stringify({last_four:last4, cardholder:ch,
+                          expiry_month:parseInt(month), expiry_year:parseInt(year),
+                          card_type:document.getElementById("cardType").value,
+                          bank_name:document.getElementById("cardBank").value,
+                          credit_limit:document.getElementById("cardLimit").value||null}),
+  });
+  btn.disabled=false; btn.textContent="Add Card 🔒";
+  if (!json?.success) { showToast(json?.error||"Failed","error"); return; }
+  closeModal("addCard");
+  document.getElementById("cardLast4").value="";
+  document.getElementById("cardHolder").value="";
+  loadCards(); showToast("Card added!","success");
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  TRANSFER
+// ══════════════════════════════════════════════════════════════════════
+async function doTransfer() {
+  const recipient = document.getElementById("transferRecipient").value.trim();
+  const amount    = document.getElementById("transferAmount").value;
+  if (!recipient||!amount) { showToast("Fill recipient and amount","error"); return; }
+  const json = await apiFetch("/payments/transfer", {
+    method:"POST",
+    body: JSON.stringify({recipient, amount:parseFloat(amount),
+                          method:currentTransferMethod,
+                          note:document.getElementById("transferNote").value}),
+  });
+  if (!json?.success) { showToast(json?.error||"Transfer failed","error"); return; }
+  document.getElementById("transferRecipient").value="";
+  document.getElementById("transferAmount").value="";
+  document.getElementById("transferNote").value="";
+  showToast(json.message||"Transfer initiated!","success");
+}
+
+async function doSendMoney() {
+  const btn       = document.getElementById("sendBtn");
+  const recipient = document.getElementById("sendRecipient").value.trim();
+  const amount    = document.getElementById("sendAmount").value;
+  if (!recipient||!amount) { showToast("Fill all fields","error"); return; }
+  btn.disabled=true; btn.textContent="Sending...";
+  const json = await apiFetch("/payments/transfer", {
+    method:"POST",
+    body: JSON.stringify({recipient, amount:parseFloat(amount),
+                          method:"upi",
+                          note:document.getElementById("sendNote").value}),
+  });
+  btn.disabled=false; btn.textContent="Send 🔒";
+  if (!json?.success) { showToast(json?.error||"Failed","error"); return; }
+  closeModal("sendMoney");
+  showToast("Money sent successfully! 🎉","success");
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  SETTINGS
+// ══════════════════════════════════════════════════════════════════════
+async function saveProfile() {
+  const json = await apiFetch("/auth/me", {
+    method:"PUT",
+    body: JSON.stringify({
+      name:     document.getElementById("settingsName").value,
+      currency: document.getElementById("settingsCurrency").value,
+    }),
+  });
+  if (!json?.success) { showToast(json?.error||"Failed","error"); return; }
+  currentUser = json.data.user;
+  document.getElementById("sidebarName").textContent = json.data.user.name;
+  showToast("Profile saved!","success");
+}
+
+async function changePassword() {
+  const json = await apiFetch("/auth/change-password", {
+    method:"PUT",
+    body: JSON.stringify({
+      current_password: document.getElementById("curPwd").value,
+      new_password:     document.getElementById("newPwd").value,
+    }),
+  });
+  if (!json?.success) { showToast(json?.error||"Failed","error"); return; }
+  document.getElementById("curPwd").value="";
+  document.getElementById("newPwd").value="";
+  showToast("Password changed!","success");
+}
+
+function exportData() {
+  showToast("Export feature coming soon!","info");
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  CHART & DONUT RENDERERS
+// ══════════════════════════════════════════════════════════════════════
+function renderChart(id, data) {
+  const el = document.getElementById(id);
+  if (!el || !data || !data.length) { if(el) el.innerHTML='<div class="page-loading" style="height:140px"><span style="color:var(--text2);font-size:13px">No data yet</span></div>'; return; }
+  const maxVal = Math.max(...data.map(d=>Math.max(d.income||0,d.expense||0)), 1);
+  el.innerHTML = data.map(d=>{
+    const ih = Math.round(((d.income||0)/maxVal)*120);
+    const eh = Math.round(((d.expense||0)/maxVal)*120);
+    const label = d.month ? d.month.slice(5) : "";
+    return `<div class="chart-col">
+      <div class="bar-wrap">
+        <div class="bar income" style="height:${ih}px" title="Income: ${fmt(d.income||0)}"></div>
+        <div class="bar expense" style="height:${eh}px" title="Expense: ${fmt(d.expense||0)}"></div>
+      </div>
+      <div class="bar-label">${label}</div>
+    </div>`;
+  }).join("");
+}
+
+const CAT_COLORS = ["#7c6aff","#ff6eb4","#4dc4ff","#22d3a0","#ffb84d","#ff5c7a","#a594ff"];
+
+function renderDonut(categories) {
+  if (!categories || !categories.length) {
+    document.getElementById("donutChart").innerHTML="";
+    document.getElementById("donutTotal").textContent="₹0";
+    document.getElementById("donutLegend").innerHTML='<div style="color:var(--text2);font-size:13px">No data this month</div>';
+    return;
+  }
+  const total = categories.reduce((s,c)=>s+c.amount,0);
+  const cx=75,cy=75,r=55,stroke=22,circ=2*Math.PI*r;
+  let offset=0, paths="";
+  categories.slice(0,5).forEach((c,i)=>{
+    const pct  = c.amount/total;
+    const dash = pct*circ;
+    paths += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${CAT_COLORS[i%CAT_COLORS.length]}" stroke-width="${stroke}" stroke-dasharray="${dash} ${circ-dash}" stroke-dashoffset="${-offset}" transform="rotate(-90 ${cx} ${cy})" opacity=".9"/>`;
+    offset += dash;
+  });
+  document.getElementById("donutChart").innerHTML = paths;
+  document.getElementById("donutTotal").textContent = fmt(total);
+  document.getElementById("donutLegend").innerHTML = categories.slice(0,5).map((c,i)=>`
+    <div class="donut-legend-item">
+      <div class="donut-legend-left">
+        <div class="donut-legend-dot" style="background:${CAT_COLORS[i%CAT_COLORS.length]}"></div>
+        <span class="donut-legend-name">${c.category}</span>
+      </div>
+      <span style="font-weight:600">${fmt(c.amount)}</span>
+    </div>`).join("");
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  HTML HELPERS
+// ══════════════════════════════════════════════════════════════════════
+const CAT_ICONS = {"Food & Dining":"🍔","Shopping":"🛍️","Transport":"🚗","Housing":"🏠",
+                   "Healthcare":"💊","Entertainment":"🎬","Education":"📚","Income":"💰",
+                   "Utilities":"⚡","Transfer":"↔️","Payment":"💳","Business":"💼"};
+
+function txHTML(t) {
+  const credit = t.type==="income";
+  const amt    = `${credit?"+":""}${fmt(t.amount)}`;
+  const icon   = CAT_ICONS[t.category] || "💸";
+  const bg     = credit?"rgba(34,211,160,.12)":"rgba(124,106,255,.1)";
+  return `<div class="tx-item">
+    <div class="tx-icon" style="background:${bg}">${icon}</div>
+    <div class="tx-info">
+      <div class="tx-name">${t.description}</div>
+      <div class="tx-meta">${t.category} · ${t.date}</div>
+    </div>
+    <div style="text-align:right">
+      <div class="tx-amount ${credit?'credit':''}">${amt}</div>
+      <div class="tx-meta">${t.payment_method}</div>
+    </div>
+    <div class="tx-status ${t.status}">${t.status}</div>
+  </div>`;
+}
+
+function budgetRow(b) {
+  const color = b.percent>=100?"var(--red)":b.percent>=80?"var(--yellow)":"var(--green)";
+  return `<div class="budget-item">
+    <div class="budget-header">
+      <div class="budget-name">
+        <div class="dot" style="background:${b.color};box-shadow:0 0 6px ${b.color}"></div>
+        ${b.icon} ${b.category}
+      </div>
+      <div style="color:var(--text2);font-size:12px"><span style="color:var(--text);font-weight:600">${fmt(b.spent)}</span> / ${fmt(b.limit)}</div>
+    </div>
+    <div class="budget-bar-track"><div class="budget-bar-fill" style="width:${b.percent}%;background:${color}"></div></div>
+  </div>`;
+}
+
+function emptyState(msg) {
+  return `<div style="text-align:center;padding:40px 20px;color:var(--text2)"><div style="font-size:36px;margin-bottom:12px">📭</div><div style="font-size:14px">${msg}</div></div>`;
+}
+
+function fmt(n) {
+  const num = parseFloat(n)||0;
+  if (num>=100000) return "₹"+(num/100000).toFixed(1)+"L";
+  if (num>=1000)   return "₹"+(num/1000).toFixed(1)+"k";
+  return "₹"+num.toFixed(0);
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  MODAL & UI HELPERS
+// ══════════════════════════════════════════════════════════════════════
+function openModal(id)  { document.getElementById("modal-"+id).classList.add("open"); }
+function closeModal(id) { document.getElementById("modal-"+id).classList.remove("open"); }
+document.querySelectorAll(".modal-overlay").forEach(m =>
+  m.addEventListener("click", e => { if (e.target===m) m.classList.remove("open"); }));
+
+function setType(type, el) {
+  currentTxType = type;
+  document.querySelectorAll(".type-btn").forEach(b=>b.classList.remove("active"));
+  el.classList.add("active");
+}
+
+function selectPM(el) {
+  el.closest(".payment-methods").querySelectorAll(".payment-method-btn").forEach(b=>b.classList.remove("active"));
+  el.classList.add("active");
+  currentTransferMethod = el.querySelector(".pm-name").textContent.toLowerCase();
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  TOAST
+// ══════════════════════════════════════════════════════════════════════
+function showToast(msg, type="info") {
+  const c = document.getElementById("toastContainer");
+  const t = document.createElement("div");
+  t.className = `toast ${type}`;
+  const icons = {success:"✅",error:"❌",info:"ℹ️"};
+  t.innerHTML = `<span style="font-size:16px">${icons[type]}</span><span>${msg}</span>`;
+  c.appendChild(t);
+  setTimeout(()=>{ t.style.opacity="0"; t.style.transform="translateX(100px)"; t.style.transition=".3s"; setTimeout(()=>t.remove(),300); }, 3500);
+}
+</script>
+</body>
+</html>
